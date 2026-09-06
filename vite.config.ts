@@ -24,9 +24,14 @@ export default defineConfig({
     target: "es2022",
     minify: true,
     cssCodeSplit: false,
-    modulePreload: { polyfill: false },
+    // No <link rel=modulepreload> hints: they resolve against the HOST
+    // page's origin, where this remote's chunks do not exist (404 noise on
+    // every load). The chunks themselves import relative to remoteEntry.js.
+    modulePreload: false,
     rollupOptions: {
-      input: { main: "./index.html" },
+      // The remote's graph only. `index.html` is the dev harness and stays
+      // out of the production build — see src/index.tsx.
+      input: { main: "./src/index.tsx" },
       output: { format: "esm" },
     },
   },

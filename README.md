@@ -79,6 +79,11 @@ Layout of the source:
   `ChartSummary`, `ChartNote`.
 - `public/locale/en.json` — the plugin's i18n namespace (`care_dental_fe`); English strings
   are also the in-code defaults, other languages load from `<plugin origin>/locale/<lng>.json`.
+- `src/style/index.css` — the stylesheet the remote injects into the host: Tailwind
+  utilities compiled against the host's theme tokens (`theme(reference)`), no preflight and no
+  `:root` theme of its own, so it cannot restyle the host page. `src/index.tsx` is the
+  production entry; `index.html` → `src/standalone.tsx` (with `harness.css`) is the dev
+  harness and is not part of the build.
 
 ## Development
 
@@ -114,6 +119,11 @@ REACT_ENABLED_APPS=ohcnetwork/care_dental_fe@localhost:4177/assets/remoteEntry.j
 Everything the host owns as a singleton that this plugin imports is declared in
 `federation.shared` (`react`, `react-dom`, `react-i18next`) — see the host's
 `vite.config.mts` before adding a dependency that the host also ships.
+
+The standalone build stays on **Vite 6**: `@originjs/vite-plugin-federation` rewrites a CSS
+placeholder in `remoteEntry.js` during the build, and under Vite 8's bundler that rewrite
+does not happen, leaving a remote the host cannot load (`e.forEach is not a function` while
+enabling the app). The host's own Vite version does not matter for in-tree development.
 
 ## License
 

@@ -1,6 +1,10 @@
-/* The plugin's own Tailwind build, for the standalone remote. Theme and
-   utilities only: the host already applies preflight, and a second reset
-   loaded into it would restyle the host page. In-tree dev strips these
-   imports and the host's Tailwind picks up the plugin's classes itself. */
-@import "tailwindcss/theme.css" layer(theme);
+/* The stylesheet the remote injects into the host page. Utilities only —
+   the theme is imported as a REFERENCE, so `bg-gray-50` compiles to
+   `var(--color-gray-50)` and resolves against the host's own tokens at
+   runtime instead of redeclaring them (a second `:root` theme would win
+   over the host's, font and all), and no preflight: the host already
+   applies one, and a second reset restyles the page around the chart.
+   In-tree dev strips these imports and the host's Tailwind generates the
+   plugin's classes itself. */
+@import "tailwindcss/theme.css" layer(theme) theme(reference);
 @import "tailwindcss/utilities.css" layer(utilities);

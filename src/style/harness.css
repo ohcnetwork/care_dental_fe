@@ -1,0 +1,3 @@
+/* The standalone harness only: a full Tailwind (theme, preflight,
+   utilities) so the chart renders the way it does inside CARE. */
+@import "tailwindcss";

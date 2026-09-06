@@ -5,8 +5,7 @@ import { initReactI18next } from "react-i18next";
 
 import { Harness } from "@/harness/Harness";
 import { NAMESPACE } from "@/hooks/useTranslation";
-import "@/style/index.css";
-import "tailwindcss/preflight.css";
+import "@/style/harness.css";
 
 import en from "../public/locale/en.json";
 
