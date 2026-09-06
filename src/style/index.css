@@ -1,0 +1,6 @@
+/* The plugin's own Tailwind build, for the standalone remote. Theme and
+   utilities only: the host already applies preflight, and a second reset
+   loaded into it would restyle the host page. In-tree dev strips these
+   imports and the host's Tailwind picks up the plugin's classes itself. */
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);

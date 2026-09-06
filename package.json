@@ -1,0 +1,57 @@
+{
+  "name": "care_dental_fe",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Dental chart (odontogram) question type for the CARE questionnaire — a frontend-only CARE plugin",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ohcnetwork/care_dental_fe.git"
+  },
+  "author": "Open Healthcare Network",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "node --import tsx --test \"src/**/*.test.ts\"",
+    "lint": "eslint .",
+    "format": "prettier --write src",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.17.0",
+    "react-i18next": "^17.0.8"
+  },
+  "peerDependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@originjs/vite-plugin-federation": "^1.4.1",
+    "@tailwindcss/vite": "^4.3.0",
+    "@types/node": "^22.14.1",
+    "@types/react": "^19.1.1",
+    "@types/react-dom": "^19.1.2",
+    "@vitejs/plugin-react": "^6.0.2",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.19",
+    "globals": "^16.0.0",
+    "i18next": "^26.4.2",
+    "prettier": "^3.8.3",
+    "prettier-plugin-tailwindcss": "^0.6.11",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "tailwindcss": "^4.1.3",
+    "tsx": "^4.19.4",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.29.1",
+    "vite": "^8.0.14"
+  },
+  "engines": {
+    "node": ">=22.9.0"
+  }
+}
