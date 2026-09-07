@@ -122,9 +122,12 @@ export default function ToothChartInput({
   );
 
   return (
+    // `care-dental-fe` is the scope the production stylesheet is nested
+    // under (vite.config.ts) — every element the chart renders lives below
+    // this root, so the plugin's utilities can never touch the host page.
     <div
       className={cn(
-        "space-y-3 rounded-lg border border-gray-200 bg-white",
+        "care-dental-fe space-y-3 rounded-lg border border-gray-200 bg-white",
         disabled ? "p-2" : "p-3",
       )}
     >

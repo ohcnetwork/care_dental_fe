@@ -81,7 +81,10 @@ Layout of the source:
   are also the in-code defaults, other languages load from `<plugin origin>/locale/<lng>.json`.
 - `src/style/index.css` — the stylesheet the remote injects into the host: Tailwind
   utilities compiled against the host's theme tokens (`theme(reference)`), no preflight and no
-  `:root` theme of its own, so it cannot restyle the host page. `src/index.tsx` is the
+  `:root` theme of its own. At build time every selector is nested under the root class
+  `.care-dental-fe` (`scopeToPluginRoot` in `vite.config.ts`): the host is a Tailwind app
+  with the same class names, and an unscoped second utility sheet overrides the host's
+  responsive variants (`hidden md:flex`) across the whole page. `src/index.tsx` is the
   production entry; `index.html` → `src/standalone.tsx` (with `harness.css`) is the dev
   harness and is not part of the build.
 
