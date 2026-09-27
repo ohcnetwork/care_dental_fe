@@ -6,7 +6,7 @@ import { isFdiCode, toothByFdi } from "./teeth";
  * performs on it. Pure functions over a sorted, tooth-unique entry list so
  * the component stays a thin view.
  *
- * Stored shape (the question's answer, `values[0].value`):
+ * View model derived from the group's ordinary child answers:
  *   [{ tooth: "16", marks: ["caries"] }, { tooth: "21" }]
  * — one entry per involved tooth, FDI code, optional findings from the
  * legend. An entry with no marks is a plain selection ("this tooth").

@@ -11,6 +11,7 @@ interface ChartSummaryProps {
   entries: readonly ToothChartEntry[];
   numbering: Numbering;
   readOnly: boolean;
+  isEditable: (tooth: string) => boolean;
   onHover: (tooth: string | null) => void;
   onRemoveMark: (tooth: string, mark: string) => void;
   onRemoveTooth: (tooth: string) => void;
@@ -28,6 +29,7 @@ export function ChartSummary({
   entries,
   numbering,
   readOnly,
+  isEditable,
   onHover,
   onRemoveMark,
   onRemoveTooth,
@@ -88,7 +90,7 @@ export function ChartSummary({
                     style={{ borderColor: marker?.stroke ?? PRIMARY_600 }}
                   >
                     {number}
-                    {!readOnly && (
+                    {!readOnly && isEditable(code) && (
                       <button
                         type="button"
                         aria-label={removeLabel}

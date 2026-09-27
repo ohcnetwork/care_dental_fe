@@ -1,5 +1,5 @@
 import { Eraser } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import "@/style/index.css";
 
@@ -7,19 +7,23 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { cn } from "@/lib/cn";
 import {
   inferDentition,
-  parseEntries,
   removeMark,
   removeTooth,
   type Brush,
   type DentitionView,
   type ToothChartEntry,
 } from "@/lib/chart";
-import { NUMBERING_STORAGE_KEY, TOOTH_CHART_TYPE } from "@/lib/constants";
+import { NUMBERING_STORAGE_KEY } from "@/lib/constants";
+import {
+  chartEntries,
+  chartTeeth,
+  updateChartRows,
+  toothIsEditable,
+} from "@/lib/group";
 import type { Numbering } from "@/lib/teeth";
-import type { StructuredInputProps } from "@/types/host";
+import type { GroupInputProps } from "@/types/host";
 
 import { BrushBar } from "./BrushBar";
-import { ChartNote } from "./ChartNote";
 import { ChartSummary } from "./ChartSummary";
 import { Segmented } from "./Segmented";
 import { ToothChart } from "./ToothChart";
@@ -47,25 +51,19 @@ function useNumberingPreference(): [Numbering, (next: Numbering) => void] {
   return [numbering, update];
 }
 
-/**
- * The structured input the host mounts for a `care_dental_fe.tooth_chart`
- * question — and, `disabled`, what the response viewers show for a stored
- * answer. The recorded entries live in `response.values[0].value`; every
- * edit hands the host the whole list back, or `[]` when the chart is
- * empty so the question counts as unanswered.
- */
+/** The chart renders ordinary answers from the registered group's children. */
 export default function ToothChartInput({
-  response,
-  onChange,
+  fields,
+  rows,
+  addRow,
   disabled,
-  errors,
-  clearError,
-}: StructuredInputProps) {
+}: GroupInputProps) {
   const { t } = useTranslation();
-  const entries = useMemo(
-    () => parseEntries(response.values[0]?.value),
-    [response.values],
-  );
+  const entries = useMemo(() => chartEntries(rows), [rows]);
+  const lastCommit = useRef(entries);
+  lastCommit.current = entries;
+  const teeth = useMemo(() => chartTeeth(fields), [fields]);
+  const readOnly = disabled || teeth.length === 0;
   const [brush, setBrush] = useState<Brush>("select");
   const [numbering, setNumbering] = useNumberingPreference();
   const [hovered, setHovered] = useState<string | null>(null);
@@ -87,15 +85,10 @@ export default function ToothChartInput({
   }, [confirmClear]);
 
   const commit = (next: ToothChartEntry[]) => {
-    onChange(
-      next.length > 0 ? [{ type: TOOTH_CHART_TYPE, value: next }] : [],
-      response.note,
-    );
-    if (errors.length > 0) clearError();
-  };
-
-  const commitNote = (note: string | undefined) => {
-    onChange(response.values, note ?? "");
+    if (disabled) return;
+    const previous = lastCommit.current;
+    lastCommit.current = next;
+    updateChartRows(fields, rows, next, addRow, previous);
   };
 
   const counts = useMemo(() => {
@@ -110,7 +103,7 @@ export default function ToothChartInput({
 
   const numberingControl = (
     <Segmented
-      size={disabled ? "xs" : "sm"}
+      size={readOnly ? "xs" : "sm"}
       aria-label={t("numbering")}
       value={numbering}
       onChange={setNumbering}
@@ -128,10 +121,10 @@ export default function ToothChartInput({
     <div
       className={cn(
         "care-dental-fe space-y-3 rounded-lg border border-gray-200 bg-white",
-        disabled ? "p-2" : "p-3",
+        readOnly ? "p-2" : "p-3",
       )}
     >
-      {disabled ? (
+      {readOnly ? (
         <div className="flex justify-end">{numberingControl}</div>
       ) : (
         <div className="flex flex-wrap items-start justify-between gap-2">
@@ -177,14 +170,16 @@ export default function ToothChartInput({
         </div>
       )}
 
-      <div className={cn("rounded-md bg-gray-50", disabled && "bg-gray-50/60")}>
+      <div className={cn("rounded-md bg-gray-50", readOnly && "bg-gray-50/60")}>
         <ToothChart
           entries={entries}
+          teeth={teeth}
+          isEditable={(tooth) => toothIsEditable(fields, rows, tooth, brush)}
           brush={brush}
           numbering={numbering}
           showPermanent={showPermanent}
           showPrimary={showPrimary}
-          readOnly={disabled}
+          readOnly={readOnly}
           hovered={hovered}
           onHover={setHovered}
           onChange={commit}
@@ -194,16 +189,11 @@ export default function ToothChartInput({
       <ChartSummary
         entries={entries}
         numbering={numbering}
-        readOnly={disabled}
+        readOnly={readOnly}
         onHover={setHovered}
+        isEditable={(tooth) => toothIsEditable(fields, rows, tooth)}
         onRemoveMark={(tooth, mark) => commit(removeMark(entries, tooth, mark))}
         onRemoveTooth={(tooth) => commit(removeTooth(entries, tooth))}
-      />
-
-      <ChartNote
-        note={response.note}
-        readOnly={disabled}
-        onChange={commitNote}
       />
     </div>
   );

@@ -1,82 +1,85 @@
 # care_dental_fe
 
-A **dental chart (odontogram)** question type for the [CARE](https://github.com/ohcnetwork/care_fe)
+A **dental chart (odontogram)** registered question group for the [CARE](https://github.com/ohcnetwork/care_fe)
 questionnaire, shipped as a frontend-only CARE plugin. Questionnaire authors add a
-"Dental chart" question in the studio; clinicians mark teeth on an interactive chart while
+"Dental chart" group in the studio; clinicians mark teeth on an interactive chart while
 filling the form; the answer is stored on the questionnaire response itself, so the plugin
-needs **no backend changes**.
+needs **no plugin-specific backend**.
 
 ![Dental chart question in the CARE fill page](docs/chart.png)
 
 ## What it does
 
-- **One structured question type**, `care_dental_fe.tooth_chart`, listed as *Dental chart*
-  under *Structured* in the studio's type picker (encounter and patient questionnaires).
+- **One registered group**, `care_dental_fe.tooth_chart`, listed as _Dental chart_
+  under _Group_ in the studio's type picker (encounter and patient questionnaires).
 - **The chart**: all 32 permanent teeth in FDI/ISO 3950 layout, patient's right on the
-  viewer's left, with an optional inner row for the 20 primary teeth (*Permanent · Mixed ·
-  Primary*). Numbers switch between FDI and Universal (ADA); the choice is remembered per
+  viewer's left, with an optional inner row for the 20 primary teeth (_Permanent · Mixed ·
+  Primary_). Numbers switch between FDI and Universal (ADA); the choice is remembered per
   browser.
-- **Findings as brushes**: *Select* marks a tooth without a finding; *Caries, Filled,
-  Missing, Crown, Root canal treated, Fractured, Mobile, Extraction advised* mark it with
+- **Findings as brushes**: _Select_ marks a tooth without a finding; _Caries, Filled,
+  Missing, Crown, Root canal treated, Fractured, Mobile, Extraction advised_ mark it with
   one. Tap a tooth to toggle; drag across teeth to paint several; click a quadrant name to
   mark the whole quadrant. A tooth can carry several findings.
 - **Reads back as text**: a summary lists every finding with its teeth, each removable on
-  its own, and an optional note. The same component renders the stored answer read-only in
-  the encounter's *Responses* tab, the single-response page and print.
+  its own. The same component renders the stored answer read-only in
+  the encounter's _Responses_ tab, the single-response page and print.
 - **Keyboard and screen readers**: one tab stop per chart, arrows move between teeth
   (up/down cross the arch), Space/Enter toggle, each tooth is named ("Upper right first
   molar, 16, Caries").
 
 ## The recorded answer
 
-The question's answer is a list of involved teeth:
+The group repeats, and each row contains two ordinary choice questions:
 
-```json
-[
-  { "tooth": "16", "marks": ["caries", "mobile"] },
-  { "tooth": "36", "marks": ["missing"] },
-  { "tooth": "11" }
-]
-```
+- `tooth` — one required FDI tooth code.
+- `type` — one optional finding. An empty finding records a plain tooth selection.
 
-- `tooth` — the FDI code (`11`–`48` permanent, `51`–`85` primary). The only identifier
-  stored; Universal numbering is a display option.
-- `marks` — finding ids from the legend, in legend order. Absent for a plain selection.
+The same tooth can appear in several rows, one for each finding. The chart combines
+those rows visually. The builder can require at least one row.
 
-On the wire the host submits that list as the question's single value, serialized to JSON
-(the backend's submit value is a plain string), with the optional note beside it:
+Core stores rows in the questionnaire response's existing `sub_results` field, with
+the ordinary child answers in each row. Caries and mobility on tooth 16, for example:
 
 ```json
 {
-  "question_id": "…",
-  "values": [{ "value": "[{\"tooth\":\"16\",\"marks\":[\"caries\",\"mobile\"]},…]" }],
-  "note": "Generalised gingival recession"
+  "question_id": "<dental group id>",
+  "values": [],
+  "sub_results": [
+    [
+      { "question_id": "<tooth id>", "values": [{ "value": "16" }] },
+      { "question_id": "<type id>", "values": [{ "value": "caries" }] }
+    ],
+    [
+      { "question_id": "<tooth id>", "values": [{ "value": "16" }] },
+      { "question_id": "<type id>", "values": [{ "value": "mobile" }] }
+    ]
+  ]
 }
 ```
 
-The backend stores this verbatim (it validates nothing for structured questions), so the
-answer is available from `cleaned_response` under the question's `link_id` and survives
-without the plugin being loaded. The host decodes it again before handing it to this
-plugin's component, so the plugin itself never sees the wire format.
+The host owns row creation, updates, removal, validation, drafts and submission.
+FDI is the stored tooth identifier; Universal numbering remains a display preference.
 
 ## How it plugs into CARE
 
-The host contract this plugin uses is `structuredQuestionTypes` in `PluginManifest`
-(`care_fe/src/pluginTypes.ts`), with **`persistence: "response"`**: the host submits the
-recorded entries as the question's own `values` instead of calling `buildRequests`, and the
-response viewers hand the stored answer back to the same component, disabled. The types
-this plugin depends on are mirrored in [`src/types/host.ts`](src/types/host.ts) — keep it in
-sync with the host when either side changes.
+The manifest contributes `registeredQuestionGroups`, containing an ordinary question
+schema, a builder renderer, and a form renderer. The renderer receives nullable child
+bindings, row callbacks and an add-row callback. The host uses the same form
+renderer, disabled, for recorded responses and print.
+
+The host types used by the plugin are mirrored in [`src/types/host.ts`](src/types/host.ts).
+Keep them in sync with the host's group registry contract.
 
 Layout of the source:
 
-- `src/manifest.tsx` — the manifest: one structured type, lazily loaded.
+- `src/manifest.tsx` — the manifest: one registered group with lazy renderers.
+- `src/lib/group.ts` — ordinary child schema and the chart-to-answer mapping.
 - `src/lib/teeth.ts` — the dentition as data (FDI ↔ Universal, quadrants, chart rows).
 - `src/lib/markers.ts` — the legend (ids, glyphs, colors).
 - `src/lib/chart.ts` — the answer model and every operation on it (pure, tested).
-- `src/components/tooth-chart/` — the chart UI: `ToothChartInput` (the structured input),
+- `src/components/tooth-chart/` — the chart UI: `ToothChartInput` (the group renderer),
   `ToothChart` (rows, painting, keyboard), `ToothButton`/`ToothGlyph`, `BrushBar`,
-  `ChartSummary`, `ChartNote`.
+  `ChartSummary`.
 - `public/locale/en.json` — the plugin's i18n namespace (`care_dental_fe`); English strings
   are also the in-code defaults, other languages load from `<plugin origin>/locale/<lng>.json`.
 - `src/style/index.css` — the stylesheet the remote injects into the host: Tailwind

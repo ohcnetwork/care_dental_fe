@@ -19,6 +19,8 @@ import { ToothButton } from "./ToothButton";
 
 export interface ToothChartProps {
   entries: readonly ToothChartEntry[];
+  teeth: readonly Tooth[];
+  isEditable: (tooth: string) => boolean;
   brush: Brush;
   numbering: Numbering;
   showPermanent: boolean;
@@ -95,6 +97,8 @@ function toothFromEvent(target: EventTarget | null): string | null {
 
 export function ToothChart({
   entries,
+  teeth,
+  isEditable,
   brush,
   numbering,
   showPermanent,
@@ -114,9 +118,15 @@ export function ToothChart({
   const painting = useRef<{ op: BrushOp; visited: Set<string> } | null>(null);
   const [roving, setRoving] = useState<string | null>(null);
 
+  const visibleCodes = new Set(teeth.map(({ fdi }) => fdi));
   const visibleRows = ROWS.filter((row) =>
     row.primary ? showPrimary : showPermanent,
-  );
+  )
+    .map((row) => ({
+      ...row,
+      teeth: row.teeth.filter(({ fdi }) => visibleCodes.has(fdi)),
+    }))
+    .filter((row) => row.teeth.length > 0);
   const firstVisible = visibleRows[0]?.teeth[0]?.fdi ?? null;
   const rovingVisible =
     roving !== null &&
@@ -132,16 +142,18 @@ export function ToothChart({
   );
 
   const apply = useCallback(
-    (tooth: string, op?: BrushOp) =>
-      commit(applyBrush(entriesRef.current, tooth, brush, op)),
-    [brush, commit],
+    (tooth: string, op?: BrushOp) => {
+      if (!readOnly && isEditable(tooth))
+        commit(applyBrush(entriesRef.current, tooth, brush, op));
+    },
+    [brush, commit, isEditable, readOnly],
   );
 
   const handlePointerDown = useCallback(
     (event: React.PointerEvent<HTMLButtonElement>) => {
       if (readOnly || event.button !== 0) return;
       const tooth = event.currentTarget.dataset.tooth;
-      if (!tooth) return;
+      if (!tooth || !isEditable(tooth)) return;
       const op = brushOpFor(entriesRef.current, tooth, brush);
       apply(tooth, op);
       // Dragging across teeth paints them all the same way the first one
@@ -151,7 +163,7 @@ export function ToothChart({
       painting.current = { op, visited: new Set([tooth]) };
       event.currentTarget.setPointerCapture(event.pointerId);
     },
-    [apply, brush, readOnly],
+    [apply, brush, isEditable, readOnly],
   );
 
   const handlePointerMove = useCallback(
@@ -232,13 +244,13 @@ export function ToothChart({
   }, []);
 
   const quadrantButton = (quadrant: number, sample: Tooth) => {
-    const teeth = ROWS.flatMap((row) => row.teeth).filter(
-      (tooth) => tooth.quadrant === quadrant,
-    );
-    const codes = teeth.map((tooth) => tooth.fdi);
+    const codes = visibleRows
+      .flatMap((row) => row.teeth)
+      .filter((tooth) => tooth.quadrant === quadrant && isEditable(tooth.fdi))
+      .map((tooth) => tooth.fdi);
     const covered = brushCovers(entriesRef.current, codes, brush);
     const name = quadrantName(sample);
-    if (readOnly) {
+    if (readOnly || codes.length === 0) {
       return <span className="text-[11px] text-gray-400">{name}</span>;
     }
     return (
@@ -291,9 +303,15 @@ export function ToothChart({
             <span>{t("patient_left")}</span>
           </div>
           {visibleRows.map((row) => {
-            const midpoint = row.teeth.length / 2;
-            const rightQuadrant = row.teeth[0];
-            const leftQuadrant = row.teeth[row.teeth.length - 1];
+            const midpoint = row.teeth.findIndex(
+              (tooth) => tooth.side === "left",
+            );
+            const rightQuadrant = row.teeth.find(
+              (tooth) => tooth.side === "right",
+            );
+            const leftQuadrant = row.teeth.find(
+              (tooth) => tooth.side === "left",
+            );
             return (
               <div
                 key={row.key}
@@ -310,6 +328,7 @@ export function ToothChart({
               >
                 <div className="hidden w-20 shrink-0 text-right @3xl:block">
                   {!row.primary &&
+                    rightQuadrant &&
                     quadrantButton(rightQuadrant.quadrant, rightQuadrant)}
                 </div>
                 <div className="flex flex-1 items-center justify-center gap-0.5">
@@ -331,7 +350,7 @@ export function ToothChart({
                           numberPosition={row.numberPosition}
                           archOffset={archOffset(tooth, row)}
                           hovered={hovered === tooth.fdi}
-                          readOnly={readOnly}
+                          readOnly={readOnly || !isEditable(tooth.fdi)}
                           tabStop={tabStop === tooth.fdi}
                           onHover={onHover}
                           onPointerDown={handlePointerDown}
@@ -346,6 +365,7 @@ export function ToothChart({
                 </div>
                 <div className="hidden w-20 shrink-0 @3xl:block">
                   {!row.primary &&
+                    leftQuadrant &&
                     quadrantButton(leftQuadrant.quadrant, leftQuadrant)}
                 </div>
               </div>

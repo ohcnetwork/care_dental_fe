@@ -1,15 +1,5 @@
-/**
- * Mirror of the care_fe host contract this plugin depends on — KEEP IN SYNC.
- *
- * Plugins build standalone and cannot import host types, so the subset of
- * the host's shapes used here is re-declared. Canonical sources:
- *   - care_fe → src/pluginTypes.ts (`PluginManifest`)
- *   - care_fe → src/components/QuestionnaireV2/structured/pluginRegistry.ts
- *     (`PluginStructuredTypeDefinition`, `PluginStructuredPersistence`)
- *   - care_fe → src/components/QuestionnaireV2/structured/types.ts
- *     (`StructuredInputProps`, `StructuredContextKey`)
- *   - care_fe → src/types/questionnaire/{form,question,batch,questionnaire}.ts
- */
+/** Subset of the host questionnaire group contract. Keep in sync with
+ * care_fe/src/components/QuestionnaireV2/groups/registry.ts and question types. */
 import type { ComponentType } from "react";
 
 export interface Code {
@@ -18,20 +8,42 @@ export interface Code {
   system?: string;
 }
 
-/** The fields of a host `Question` this plugin reads. */
 export interface Question {
   id: string;
   link_id: string;
   text: string;
   description?: string;
-  type: string;
+  type:
+    | "group"
+    | "display"
+    | "boolean"
+    | "decimal"
+    | "integer"
+    | "date"
+    | "dateTime"
+    | "time"
+    | "string"
+    | "text"
+    | "url"
+    | "choice"
+    | "quantity"
+    | "structured";
   structured_type?: string;
   required?: boolean;
   read_only?: boolean;
+  repeats?: boolean;
+  questions?: Question[];
+  answer_option?: { value: string; display?: string }[];
+  enable_when?: ({ question: string } & (
+    | {
+        operator: "greater" | "less" | "greater_or_equals" | "less_or_equals";
+        answer: number;
+      }
+    | { operator: "exists" | "equals" | "not_equals"; answer: boolean }
+    | { operator: "equals" | "not_equals"; answer: string }
+  ))[];
 }
 
-/** Host `ResponseValue`, widened: the host types `value` per question type;
- *  a plugin's data is opaque to it, so `unknown` is the honest mirror. */
 export interface ResponseValue {
   type: string;
   value?: unknown;
@@ -44,6 +56,7 @@ export interface QuestionnaireResponse {
   structured_type: string | null;
   link_id: string;
   values: ResponseValue[];
+  sub_results?: QuestionnaireResponse[][];
   note?: string;
 }
 
@@ -57,70 +70,50 @@ export interface QuestionValidationError {
 export type SubjectType =
   "patient" | "encounter" | "location" | "device" | "facility";
 
-export type StructuredContextKey = "patientId" | "encounterId" | "facilityId";
+export type GroupQuestionDefinition = Omit<Question, "id" | "questions"> & {
+  questions?: GroupQuestionDefinition[];
+};
 
-/** The prop bag the host's `StructuredSlot` hands every structured input.
- *  The response viewers mount the same component with `disabled` and
- *  no-op callbacks to show a stored answer. */
-export interface StructuredInputProps {
+export interface GroupBuilderProps {
+  question: Question;
+  onChange: (patch: Partial<Question>) => void;
+}
+
+export interface GroupField {
   question: Question;
   response: QuestionnaireResponse;
-  onChange: (values: ResponseValue[], note?: string) => void;
-  onInitializeResponse?: (values: ResponseValue[]) => void;
   disabled: boolean;
-  errors: QuestionValidationError[];
-  clearError: () => void;
-  patientId?: string;
-  encounterId?: string;
-  facilityId?: string;
-  questionnaireId?: string;
-  questionnaireSlug?: string;
+  hidden: boolean;
+  errors: readonly QuestionValidationError[];
 }
 
-export interface StructuredBatchEntry {
-  url: string;
-  method: "POST" | "PUT" | "PATCH";
-  reference_id: string;
-  body: unknown;
+export interface GroupRow {
+  fields: Record<string, GroupField | null>;
+  onChange: (updates: Record<string, Partial<QuestionnaireResponse>>) => void;
+  remove: () => void;
 }
 
-export interface StructuredRequestContext {
-  patientId?: string;
-  encounterId?: string;
-  facilityId?: string;
-  questionId: string;
+export interface GroupInputProps {
+  question: Question;
+  fields: Record<string, GroupField | null>;
+  onChange: (updates: Record<string, Partial<QuestionnaireResponse>>) => void;
+  disabled: boolean;
+  rows: GroupRow[];
+  addRow: (updates?: Record<string, Partial<QuestionnaireResponse>>) => void;
 }
 
-export type StructuredRequestBuilder = (
-  data: unknown[],
-  context: StructuredRequestContext,
-) => Promise<StructuredBatchEntry[]>;
-
-/** Where a type's recorded entries go at submit. `"response"` stores them
- *  as the question's own answer on the questionnaire response — no backend
- *  endpoint of the plugin's own. */
-export type PluginStructuredPersistence =
-  | { persistence?: "batch"; buildRequests: StructuredRequestBuilder }
-  | { persistence: "response"; buildRequests?: undefined };
-
-export type PluginStructuredTypeDefinition = {
-  /** Namespaced `{plugin_slug}.{type_name}`. */
+export interface RegisteredGroupDefinition {
   type: string;
-  component: ComponentType<StructuredInputProps>;
-  requires: readonly StructuredContextKey[];
-  subjects: readonly SubjectType[];
-  draftPolicy: "serialize" | "exclude";
   label: string;
   icon?: ComponentType<{ className?: string }>;
-  validate?: (
-    data: unknown[],
-    questionId: string,
-    required: boolean,
-  ) => QuestionValidationError[];
-} & PluginStructuredPersistence;
+  subjects: readonly SubjectType[];
+  repeats?: boolean;
+  schema: readonly GroupQuestionDefinition[];
+  builder: ComponentType<GroupBuilderProps>;
+  component: ComponentType<GroupInputProps>;
+}
 
-/** The subset of the host `PluginManifest` this plugin fills in. */
 export interface PluginManifest {
   plugin: string;
-  structuredQuestionTypes?: readonly PluginStructuredTypeDefinition[];
+  registeredQuestionGroups?: readonly RegisteredGroupDefinition[];
 }

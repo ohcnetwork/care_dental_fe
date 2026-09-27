@@ -3,7 +3,7 @@
  *  name (standalone). It is the namespace of every type this plugin owns. */
 export const PLUGIN_SLUG = "care_dental_fe";
 
-/** The structured question type this plugin contributes. Questionnaires
+/** The registered group this plugin contributes. Questionnaires
  *  store this string in `structured_type`; renaming it orphans them. */
 export const TOOTH_CHART_TYPE = `${PLUGIN_SLUG}.tooth_chart`;
 
