@@ -60,8 +60,11 @@ export interface QuestionnaireResponse {
   note?: string;
 }
 
+export type ResponsePath = { questionId: string; rowIndex: number }[];
+
 export interface QuestionValidationError {
   question_id: string;
+  response_path?: ResponsePath;
   error?: string;
   msg?: string;
   type?: string;
@@ -111,6 +114,11 @@ export interface RegisteredGroupDefinition {
   schema: readonly GroupQuestionDefinition[];
   builder: ComponentType<GroupBuilderProps>;
   component: ComponentType<GroupInputProps>;
+  validate?: (
+    question: Question,
+    responses: Record<string, QuestionnaireResponse>,
+    path: ResponsePath,
+  ) => QuestionValidationError[];
 }
 
 export interface PluginManifest {

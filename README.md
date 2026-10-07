@@ -1,5 +1,7 @@
 # care_dental_fe
 
+See [SCHEMA.md](SCHEMA.md) for saved fields, validation rules, and submission examples.
+
 A **dental chart (odontogram)** registered question group for the [CARE](https://github.com/ohcnetwork/care_fe)
 questionnaire, shipped as a frontend-only CARE plugin. Questionnaire authors add a
 "Dental chart" group in the studio; clinicians mark teeth on an interactive chart while
@@ -26,6 +28,8 @@ needs **no plugin-specific backend**.
 - **Keyboard and screen readers**: one tab stop per chart, arrows move between teeth
   (up/down cross the arch), Space/Enter toggle, each tooth is named ("Upper right first
   molar, 16, Caries").
+
+The group registers a submission validator for saved tooth/finding options, single-value answers, and duplicate tooth/finding pairs. Different findings on the same tooth remain valid. CARE handles required fields and required rows.
 
 ## The recorded answer
 

@@ -7,6 +7,8 @@
   "dentition_mixed": "Mixed",
   "dentition_permanent": "Permanent",
   "dentition_primary": "Primary",
+  "error_choice": "Select one of the available tooth or finding values.",
+  "error_duplicate_finding": "The same tooth and finding are recorded more than once.",
   "finding_type": "Finding",
   "marker_caries": "Caries",
   "marker_crown": "Crown",
